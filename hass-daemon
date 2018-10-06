@@ -1,5 +1,12 @@
 #!/sbin/openrc-run
 
+# OpenRC service file for Home Assistant in a Python virtual environment
+#
+# Config variables
+# H_USER: Run as user
+# H_GROUP: Run as group
+# PYTHON_VENV_PATH: Path to python virtual environment
+
 command="hass"
 pidfile="/run/${RC_SVCNAME}/${RC_SVCNAME}.pid"
 command_args="--pid-file ${pidfile}"
@@ -37,10 +44,13 @@ update() {
   [ -f ${PYTHON_VENV_PATH}/bin/activate ] || \
     quit "Cannot source venv ${PYTHON_VENV_PATH}/bin/activate"
 
-  if service_stopping || service_starting || service_inactive || service_crashed || service_started; then
-    eerror "Service must be stopped to update"
-  else
-    su -s /bin/bash -c \
-      "source ${PYTHON_VENV_PATH}/bin/activate; python3 -m pip install --upgrade homeassistant" ${H_USER}
+  if service_stopping || service_starting || service_inactive || \
+    service_crashed || service_started; then
+    quit "Service must be stopped to update"
   fi
+
+  su -s /bin/bash -c \
+    "source ${PYTHON_VENV_PATH}/bin/activate; \
+      python3 -m pip install --upgrade homeassistant" \
+    ${H_USER}
 }
