@@ -1,0 +1,61 @@
+#!/sbin/openrc-run
+
+name="vbox daemon"
+description="VirtualBox"
+VM_NAME="dahlia"
+VM_USER="hogklint"
+
+depend()
+{
+	after modules
+}
+
+start() {
+  einfo "Starting vbox ${VM_NAME}"
+  su -s /bin/bash -c "VBoxManage startvm ${VM_NAME} --type headless" ${VM_USER}
+}
+
+stop() {
+  einfo "Stopping vbox ${VM_NAME}"
+  su -s /bin/bash -c "VBoxManage controlvm ${VM_NAME} acpipowerbutton" ${VM_USER}
+  while vm_is_running;
+  do
+    echo -n "."
+    sleep 1
+  done
+  echo ""
+}
+
+status() {
+  if service_stopping; then
+    ewarn "status: stopping"
+    return 4
+  elif service_starting; then
+    ewarn "status: starting"
+    return 8
+  elif service_started; then
+    if vm_is_running;
+    then
+      einfo "status: started"
+      return 0
+    else
+      eerror "status: crashed"
+      return 32
+    fi
+  else
+    if vm_is_running;
+    then
+      eerror "status: stopped but running"
+      return 32
+    else
+      eerror "status: stopped"
+      return 3
+    fi
+  fi
+}
+
+vm_is_running() {
+  [ -n "$(su -s /bin/bash -c "VBoxManage list runningvms | \
+    grep -w ${VM_NAME}" ${VM_USER})" ] && return 0 || return 1
+}
+
